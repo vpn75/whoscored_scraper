@@ -7,13 +7,12 @@ import urllib.parse
 
 class WhoScored_scraper(object):
 	def __init__(self, team):
-		#self.url = 'https://www.whoscored.com/Regions/252/Tournaments/2/England-Premier-League'
-		self.url = 'https://www.whoscored.com/Regions/206/Tournaments/4/Spain-LaLiga'
+		self.url = 'https://www.whoscored.com/Regions/252/Tournaments/2/England-Premier-League'
 		self.base_url = 'https://whoscored.com/'
 		self.team_url = ''
 		
 		self.team = team #Specify team whose player ratings are being scraped
-		self.comp = 'SLL' #Specify competition to scrape ratings for
+		self.comp = 'EPL' #Specify competition to scrape ratings for
 		
 		self.colnames = [
 							'name',
@@ -48,7 +47,6 @@ class WhoScored_scraper(object):
 		self.mins_played_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[8]'
 		self.rating_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[9]'
 		self.all_matches = []
-		self.delay = 5 #Seconds to wait between each player scraping session
 
 	
 	def get_team_urls(self):
