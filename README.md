@@ -8,4 +8,4 @@ This python package allows you to scrape football player-ratings from [WhoScored
 
 Full dependencies documented in `requirements.txt` file. To install required dependencies, run the following command from a virtual environment created to run the package:
 
-`python pip install -r requirements.txt`
+```pip install -r requirements.txt```
