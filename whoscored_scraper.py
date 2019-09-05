@@ -18,7 +18,7 @@ class WhoScored_scraper(object):
 								'Bundesliga': 'https://www.whoscored.com/Regions/81/Tournaments/3/Germany-Bundesliga',
 								'SerieA': 'https://www.whoscored.com/Regions/108/Tournaments/5/Italy-Serie-A',
 								'Ligue1': 'https://www.whoscored.com/Regions/74/Tournaments/22/France-Ligue-1'
-							}
+		}
 
 		self.comps = {
 						'EPL': 'EPL',
@@ -26,7 +26,7 @@ class WhoScored_scraper(object):
 						'Bundesliga': 'GB',
 						'SerieA': 'ISA',
 						'Ligue1': 'FL1'
-					}
+		}
 
 		self.colnames = [
 							'name',
@@ -39,7 +39,7 @@ class WhoScored_scraper(object):
 							'result',
 							'minutes_played',
 							'rating'
-						]
+		]
 
 		#self.teams_to_scrape = ['Liverpool','Arsenal','Manchester City','Manchester United','Chelsea','Tottenham']
 		if league not in self.league_urls.keys():
@@ -56,23 +56,13 @@ class WhoScored_scraper(object):
 		chrome_options.add_argument('--headless')
 		self.driver = webdriver.Chrome(chrome_options=chrome_options)
 
-		self.team_url_xpath = '//*[@id="standings-17590-content"]/tr[*]/td[2]/a'
-		self.player_url_xpath = '//*[@id="player-table-statistics-body"]/tr[*]/td[3]/a'
-		self.result_xpath = '//*[@id="player-fixture"]/tbody//tr[*]/td[4]/a'
-		self.comp_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[1]/span/a'
-		self.match_date_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[2]'
-		self.away_team_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[5]/a'
-		self.home_team_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[3]/a'
-		self.mins_played_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[8]'
-		self.rating_xpath = '//*[@id="player-fixture"]/tbody/tr[*]/td[9]'
 		self.all_matches = []
 
-	
-	def get_team_urls(self):
+	def get_team_url(self):
 		driver = self.driver
 		try:
 			driver.get(self.url)
-			soup = BeautifulSoup(driver.page_source, 'lxml')
+			soup = BeautifulSoup(driver.page_source, 'html.parser')
 			tables = soup.find_all('table')
 			links = tables[5].find_all('a', {'class': 'team-link'})
 			for link in links:
@@ -82,14 +72,12 @@ class WhoScored_scraper(object):
 		except TimeoutException:
 			print('Connection to WhoScoredcom timed out. Please try running the script again.')
 		finally:
-			print('Found Team URL for ', self.team)
-
-
+			print('Found Team URL for', self.team)
 
 	def get_player_urls(self, **kwargs):
 		driver = self.driver
 		driver.get(self.team_url)
-		soup = BeautifulSoup(driver.page_source, 'lxml')
+		soup = BeautifulSoup(driver.page_source, 'html.parser')
 		table = soup.find_all('table')
 		links = table[3].find_all('a', {'class': 'player-link'})
 
@@ -138,48 +126,38 @@ class WhoScored_scraper(object):
 			else: result = 'D'
 		return result
 
-	def scrape_player_info(self, **kwargs):
+	def scrape_player(self, index, url):
 		driver = self.driver
-		
-		for i, url in enumerate(self.player_urls):
-			driver.get(url)
-			print('Scraping ratings for player {} from {}'.format(self.player_names[i], self.team))
-			comps = driver.find_elements_by_xpath(self.comp_xpath)
-			match_dates = driver.find_elements_by_xpath(self.match_date_xpath)
-			home_teams = driver.find_elements_by_xpath(self.home_team_xpath)
-			away_teams = driver.find_elements_by_xpath(self.away_team_xpath)
-			results = driver.find_elements_by_xpath(self.result_xpath)
-			mins_played = driver.find_elements_by_xpath(self.mins_played_xpath)
-			ratings = driver.find_elements_by_xpath(self.rating_xpath)
-			
-			player_detail = []
-			player_detail.append(self.player_names[i])
+		driver.get(url)
+		soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-			for comp, match_date, home_team, away_team, result, min_played, rating in zip(comps, match_dates, home_teams, away_teams, results, mins_played, ratings):
-				r = result.get_attribute('text')
-				c = comp.get_attribute('text')
-				ht = home_team.get_attribute('text')
-				awt = away_team.get_attribute('text')
-				md = match_date.get_attribute('innerHTML')
-				mp = min_played.get_attribute('innerHTML').strip().replace("'", "")
-				rt = rating.get_attribute('innerHTML')
-				
-				if c == self.comp: #Filter ratings to specified competition
-					#name = self.set_player_name(url)
-					match_location = self.set_match_location(ht)
-					home_goals, away_goals = self.set_match_score(r)
-					opponent = self.set_match_opponent(ht,awt, self.team)
-					outcome = self.set_match_result(ht, awt, home_goals, away_goals)                      
-					rt = float(rt.strip())
+		player_detail = []
+		player_detail.append(self.player_names[index])
 
-					self.all_matches.append(player_detail + [c, md, opponent, match_location, home_goals, away_goals, mp, outcome, rt])         
+		tables = soup.find_all('table')
+		trs = tables[0].find_all('tr')[1:]
+		tds = [tr.find_all('td') for tr in trs]
+		match_dates = [td[1].text.strip() for td in tds if td[0].a.text == self.comp]
+		home_teams = [td[2].text.strip() for td in tds if td[0].a.text == self.comp]
+		results = [td[3].text.strip() for td in tds if td[0].a.text == self.comp]
+		away_teams = [td[4].text.strip() for td in tds if td[0].a.text == self.comp]
+		mins_played = [int(td[7].text.strip().replace("'","")) for td in tds if td[0].a.text == self.comp]
+		ratings = [float(td[8].text.strip()) for td in tds if td[0].a.text == self.comp]
 
-		print('Finished scraping player-URLs for {}!'.format(self.team))
-		print('Total matches scraped: {}'.format(len(self.all_matches)))
-		
+		rows = zip(match_dates, home_teams, away_teams, results, mins_played, ratings)
+
+		for md, ht, awt, r, mp, rt in rows:
+			match_location = self.set_match_location(ht)
+			home_goals, away_goals = self.set_match_score(r)
+			opponent = self.set_match_opponent(ht,awt, self.team)
+			outcome = self.set_match_result(ht, awt, home_goals, away_goals) 
+			self.all_matches.append(player_detail + [self.comp, md, opponent, match_location, home_goals, away_goals, mp, outcome, rt])
+
+		print('Finished scraping player-ratings for {}'.format(self.player_names[index]))
+
 
 	def do_work(self):
-		self.get_team_urls()
+		self.get_team_url()
 
 		if self.team_url == '':
 			raise Exception('No valid team URL found for:', self.team)
@@ -192,7 +170,9 @@ class WhoScored_scraper(object):
 			self.driver.quit()
 
 		self.set_player_names()
-		self.scrape_player_info()	
+
+		for i, url in enumerate(self.player_urls):
+			self.scrape_player(i, url)
 	
 		if len(self.all_matches) > 0:
 			self.write_to_csv()
