@@ -1,9 +1,12 @@
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from pandas import DataFrame, Series
-from bs4 import BeautifulSoup
 from datetime import datetime as dt
 from urllib.parse import unquote
+
+from bs4 import BeautifulSoup
+from pandas import DataFrame, Series
+
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+
 
 class WhoScored_scraper(object):
 	def __init__(self, team, league):
@@ -30,6 +33,7 @@ class WhoScored_scraper(object):
 
 		self.colnames = [
 							'name',
+							'player_team',
 							'competition',
 							'match_date',
 							'opponent',
@@ -133,6 +137,7 @@ class WhoScored_scraper(object):
 
 		player_detail = []
 		player_detail.append(self.player_names[index])
+		player_detail.append(self.team)
 
 		tables = soup.find_all('table')
 		trs = tables[0].find_all('tr')[1:]
