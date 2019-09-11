@@ -1,11 +1,15 @@
 from datetime import datetime as dt
 from urllib.parse import unquote
+import json
 
 from bs4 import BeautifulSoup
 from pandas import DataFrame, Series
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+
+with open('config.json', 'r') as fp:
+	config = json.load(fp)
 
 
 class WhoScored_scraper(object):
@@ -15,21 +19,9 @@ class WhoScored_scraper(object):
 		
 		self.team = team #Specify team whose player ratings are being scrape
 		
-		self.league_urls = {
-								'EPL': 'https://www.whoscored.com/Regions/252/Tournaments/2/England-Premier-League',
-								'LaLiga': 'https://www.whoscored.com/Regions/206/Tournaments/4/Spain-LaLiga',
-								'Bundesliga': 'https://www.whoscored.com/Regions/81/Tournaments/3/Germany-Bundesliga',
-								'SerieA': 'https://www.whoscored.com/Regions/108/Tournaments/5/Italy-Serie-A',
-								'Ligue1': 'https://www.whoscored.com/Regions/74/Tournaments/22/France-Ligue-1'
-		}
+		self.league_urls = config['league_urls']
 
-		self.comps = {
-						'EPL': 'EPL',
-						'LaLiga': 'SLL',
-						'Bundesliga': 'GB',
-						'SerieA': 'ISA',
-						'Ligue1': 'FL1'
-		}
+		self.comps = config['comps']
 
 		self.colnames = [
 							'name',
@@ -48,9 +40,9 @@ class WhoScored_scraper(object):
 		#self.teams_to_scrape = ['Liverpool','Arsenal','Manchester City','Manchester United','Chelsea','Tottenham']
 		if league not in self.league_urls.keys():
 			raise KeyError('Class called with invalid league-name!')
-		else:
-			self.url = self.league_urls[league]
-			self.comp = self.comps[league]
+		
+		self.url = self.league_urls[league]
+		self.comp = self.comps[league]
 
 		self.player_urls = []
 		self.player_names = []
@@ -165,15 +157,15 @@ class WhoScored_scraper(object):
 		self.get_team_url()
 
 		if self.team_url == '':
-			raise Exception('No valid team URL found for:', self.team)
 			self.driver.quit()
-		
+			raise Exception('No valid team URL found for:', self.team)
+			
 		self.get_player_urls()
 
 		if len(self.player_urls) == 0:
-			raise Exception('No valid player URLs were found for:', self.team)
 			self.driver.quit()
-
+			raise Exception('No valid player URLs were found for:', self.team)
+			
 		self.set_player_names()
 
 		for i, url in enumerate(self.player_urls):
@@ -183,8 +175,9 @@ class WhoScored_scraper(object):
 			self.write_to_csv()
 			self.driver.quit()
 		else:
-			raise Exception("There was an issue scraping player-ratings!")
 			self.driver.quit()
+			raise Exception("There was an issue scraping player-ratings!")
+			
 
 	def write_to_csv(self):
 		today = dt.strftime(dt.today(), '%Y%m%d')
