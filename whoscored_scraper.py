@@ -1,6 +1,7 @@
 from datetime import datetime as dt
 from urllib.parse import unquote
 import json
+import re
 
 from bs4 import BeautifulSoup
 from pandas import DataFrame, Series
@@ -181,7 +182,8 @@ class WhoScored_scraper(object):
 
 	def write_to_csv(self):
 		today = dt.strftime(dt.today(), '%Y%m%d')
-		csv_filename = '{}_{}_player_ratings_{}.csv'.format(self.team, self.comp, today)
+		team = re.sub(r'\s+', '_', self.team) #Replace whitespace in team-name with '_' for use in output filename
+		csv_filename = '{}_{}_player_ratings_{}.csv'.format(team, self.comp, today)
 		df = DataFrame(self.all_matches)
 		df.columns = self.colnames
 		df.to_csv(csv_filename, index=False)
